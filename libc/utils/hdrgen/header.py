@@ -6,6 +6,8 @@
 #
 # ==-------------------------------------------------------------------------==#
 
+from pathlib import PurePosixPath
+
 
 class HeaderFile:
     def __init__(self, name):
@@ -32,14 +34,36 @@ class HeaderFile:
     def add_function(self, function):
         self.functions.append(function)
 
+    def includes(self):
+        return sorted(
+            {
+                PurePosixPath("llvm-libc-macros") / macro.header
+                for macro in self.macros
+                if macro.header is not None
+            }
+            | {
+                PurePosixPath("llvm-libc-types") / f"{typ.type_name}.h"
+                for typ in self.types
+            }
+        )
+
     def public_api(self):
-        content = [""]
+        # Python 3.12 has .relative_to(dir, walk_up=True) for this.
+        path_prefix = PurePosixPath("../" * (len(PurePosixPath(self.name).parents) - 1))
+
+        def relpath(file):
+            return path_prefix / file
+
+        content = [
+            f"#include {file}"
+            for file in sorted(f'"{relpath(file)!s}"' for file in self.includes())
+        ]
 
         for macro in self.macros:
-            content.append(f"{macro}\n")
-
-        for type_ in self.types:
-            content.append(f"{type_}")
+            # When there is nothing to define, the Macro object converts to str
+            # as an empty string.  Don't emit a blank line for those cases.
+            if str(macro):
+                content.extend(["", f"{macro}"])
 
         if self.enumerations:
             combined_enum_content = ",\n  ".join(
@@ -76,11 +100,9 @@ class HeaderFile:
             content.append(f"#endif // {current_guard}")
             content.append("")
 
-        for object in self.objects:
-            content.append(str(object))
+        content.extend(str(object) for object in self.objects)
         if self.objects:
-            content.append("\n__END_C_DECLS")
-        else:
-            content.append("__END_C_DECLS")
+            content.append("")
+        content.append("__END_C_DECLS")
 
         return "\n".join(content)
