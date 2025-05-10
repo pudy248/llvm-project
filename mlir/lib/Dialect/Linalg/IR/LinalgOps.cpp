@@ -1416,7 +1416,6 @@ static void addBodyWithPayloadOp(OpAsmParser &parser, OperationState &result,
   Region *body = result.addRegion();
   Block &block = body->emplaceBlock();
   b.setInsertionPointToStart(&block);
-  SmallVector<Value> bbArgs;
   for (auto &operand : operands) {
     block.addArgument(
         llvm::cast<ShapedType>(operand.getType()).getElementType(),
@@ -2281,6 +2280,24 @@ LogicalResult IndexOp::verify() {
            << getDim() << ") to be lower than the number of loops ("
            << linalgOp.getNumLoops() << ") of the enclosing LinalgOp";
   return success();
+}
+
+OpFoldResult IndexOp::fold(FoldAdaptor adaptor) {
+  auto linalgOp = dyn_cast_or_null<LinalgOp>((*this)->getParentOp());
+  // Bail out if `linalg.index` does not have a proper parent yet at this
+  // point, e.g., when calling `createOrFold` during IR construction in
+  // `genericOp::build`.
+  if (!linalgOp)
+    return OpFoldResult{};
+
+  // Index of unit dims is always 0.
+  SmallVector<int64_t, 4> loopBounds = linalgOp.getStaticLoopRanges();
+  uint64_t dim = getDim();
+  assert(dim < loopBounds.size() && "Dim is out of bounds");
+  if (loopBounds[dim] == 1)
+    return IntegerAttr::get(IndexType::get(getContext()), 0);
+
+  return OpFoldResult{};
 }
 
 /////// Operations corresponding to library calls defined with Tablegen ////////
