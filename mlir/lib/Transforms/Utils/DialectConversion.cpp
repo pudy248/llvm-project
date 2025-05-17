@@ -2106,6 +2106,7 @@ OperationLegalizer::legalizeWithFold(Operation *op,
     rewriterImpl.logger.startLine() << "* Fold {\n";
     rewriterImpl.logger.indent();
   });
+  (void)rewriterImpl;
 
   // Try to fold the operation.
   SmallVector<Value, 2> replacementValues;
@@ -2746,8 +2747,7 @@ LogicalResult OperationConverter::convertOperations(ArrayRef<Operation *> ops) {
 void mlir::reconcileUnrealizedCasts(
     ArrayRef<UnrealizedConversionCastOp> castOps,
     SmallVectorImpl<UnrealizedConversionCastOp> *remainingCastOps) {
-  SetVector<UnrealizedConversionCastOp> worklist(castOps.begin(),
-                                                 castOps.end());
+  SetVector<UnrealizedConversionCastOp> worklist(llvm::from_range, castOps);
   // This set is maintained only if `remainingCastOps` is provided.
   DenseSet<Operation *> erasedOps;
 
@@ -2959,7 +2959,7 @@ TypeConverter::convertSignatureArgs(TypeRange types,
 Value TypeConverter::materializeSourceConversion(OpBuilder &builder,
                                                  Location loc, Type resultType,
                                                  ValueRange inputs) const {
-  for (const MaterializationCallbackFn &fn :
+  for (const SourceMaterializationCallbackFn &fn :
        llvm::reverse(sourceMaterializations))
     if (Value result = fn(builder, resultType, inputs, loc))
       return result;
