@@ -28,8 +28,8 @@ struct TransparentKeyHash {
 };
 
 void test() {
-  std::unordered_map<int, int> m;
-  const std::unordered_map<int, int> cm;
+  std::unordered_multimap<int, int> m;
+  const std::unordered_multimap<int, int> cm;
 
   m.get_allocator(); // expected-warning {{ignoring return value of function declared with 'nodiscard' attribute}}
 
@@ -57,8 +57,8 @@ void test() {
   m.find(key);  // expected-warning {{ignoring return value of function declared with 'nodiscard' attribute}}
   cm.find(key); // expected-warning {{ignoring return value of function declared with 'nodiscard' attribute}}
 #if TEST_STD_VER >= 20
-  std::unordered_map<StoredKey, int, TransparentKeyHash, std::equal_to<>> tm;
-  const std::unordered_map<StoredKey, int, TransparentKeyHash, std::equal_to<>> ctm;
+  std::unordered_multimap<StoredKey, int, TransparentKeyHash, std::equal_to<>> tm;
+  const std::unordered_multimap<StoredKey, int, TransparentKeyHash, std::equal_to<>> ctm;
 
   TransparentKey tkey;
 
@@ -80,12 +80,6 @@ void test() {
   tm.equal_range(tkey);  // expected-warning {{ignoring return value of function declared with 'nodiscard' attribute}}
   ctm.equal_range(tkey); // expected-warning {{ignoring return value of function declared with 'nodiscard' attribute}}
 #endif
-
-  m[key];            // expected-warning {{ignoring return value of function declared with 'nodiscard' attribute}}
-  m[std::move(key)]; // expected-warning {{ignoring return value of function declared with 'nodiscard' attribute}}
-
-  m.at(key);  // expected-warning {{ignoring return value of function declared with 'nodiscard' attribute}}
-  cm.at(key); // expected-warning {{ignoring return value of function declared with 'nodiscard' attribute}}
 
   m.bucket_count();     // expected-warning {{ignoring return value of function declared with 'nodiscard' attribute}}
   m.max_bucket_count(); // expected-warning {{ignoring return value of function declared with 'nodiscard' attribute}}
